@@ -1,2 +1,2 @@
 *.asv
-/matlab_workspace.mat
+*.mat
