@@ -86,10 +86,17 @@ classdef KalmanSE3 < handle
             %! Predict given current pose and velocity
             % Constant velocity model: update position based on last known velocity
             pose = self.state_SE3;
+            % compute delta pose over time frame dt
             delta_pose = self.state_SE3_dot * dt;
+            % decouple rotation and translation components by removing the
+            % motion of the frame origin due to the rotation from the
+            % translation. The results is that rotational forces do not impact positional
+            % updates.
             newTrans = pose.getTranslation() - delta_pose.getSo3() * pose.getTranslation() + delta_pose.getTranslation();
             delta_pose.setTranslation(newTrans);
+            % left composition of transformations
             x_predicted(1) = delta_pose * self.state_SE3;
+            % constant velocity assumption
             x_predicted(2) = self.state_SE3_dot;
         end
         % // new interface
