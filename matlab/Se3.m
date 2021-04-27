@@ -415,11 +415,8 @@ classdef Se3 < Constants
             %  ``hat(Ad_A * x) = A * hat(x) A^{-1}``. See hat-operator below.
             %
             R = self.so3().matrix();
-            res(1:3,1:3) = R;
-            % TODO: Does this line do anything?
-            % res.block(3, 3, 3, 3) = R;
-            res(1:3,4) = So3.hat(self.translation) * R;
-            res(4,1:3) = zeros(1,3);
+            res = [R, So3.hat(self.translation) * R;
+                zeros(3,3), R];
         end
 
         function retval = angleX(self)

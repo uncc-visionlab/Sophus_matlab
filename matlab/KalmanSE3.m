@@ -10,7 +10,7 @@ classdef KalmanSE3 < handle
         function trajectory = demo()
             deg_per_sec = 45*pi/180;
             initialState = [3, 3, 3, 0, 0, 0, ...
-               2, 2, -2, deg_per_sec, 0, 0]';
+               3, 0, 0, 0, deg_per_sec, deg_per_sec]';
             %pose = Se3([1, 1, 1, 0, 0, 0]);
             %delta_pose = Se3([0, 0, 0, deg_per_sec, 0, 0]);
             %rotate_around_pose = Se3([pose.getTranslation() - delta_pose.getSo3() * pose.getTranslation(); deg_per_sec; 0; 0]);
