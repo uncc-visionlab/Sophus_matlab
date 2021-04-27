@@ -262,6 +262,8 @@ classdef So3 < RotationMatrix
                 %elseif (nargin == 1 && numel(varargin{1}) == 1 && imag(varargin{1}) > 0)
                 %    % input is a complex number
                 %    self.z = complex(varargin{1});
+            elseif (nargin == 1 && numel(varargin{1}) == 3)
+                self = So3.exp([varargin{1}(1); varargin{1}(2); varargin{1}(3)]);
             elseif (nargin == 1 && numel(varargin{1}) == 9 && size(varargin{1},1) == 3 && size(varargin{1},2) == 3)
                 % input is a 3x3 rotation matrix
                 self.unit_quaternion_ = quaternion(rotm2quat(varargin{1}));

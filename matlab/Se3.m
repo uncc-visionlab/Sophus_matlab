@@ -391,12 +391,12 @@ classdef Se3 < Constants
                 self.so3 = varargin{1}.getSo3();
             elseif (nargin == 1 && numel(varargin{1}) == 6)
                 % input is an tangent vector
-                self.translation = varargin{1}(1:3);
+                self.translation = [varargin{1}(1); varargin{1}(2); varargin{1}(3)];
                 self.so3 = So3.exp(varargin{1}(4:6));
             elseif (nargin == 2 && isequal(class(varargin{1}),'So3') && size(varargin{2},1) == 3)
                 % constructor from So3() object and translation vector
                 self.so3 = varargin{1};
-                self.translation = varargin{2}(1:3);
+                self.translation = [varargin{2}(1); varargin{2}(2); varargin{2}(3)];
             elseif (nargin == 2 && numel(varargin{1}) == 4 && size(varargin{1},1) == 3 && size(varargin{1},2) == 3 && ...
                     numel(varargin{2}) == 3 && size(varargin{2},1) == 3 && size(varargin{2},2) == 1)
                 % input is a 2x2 rotation matrix and translation vector
@@ -592,6 +592,11 @@ classdef Se3 < Constants
             retval = self.so3.matrix();
         end
 
+        function setTranslation(self, trans)
+            %  Sets the translation component using trans
+            self.translation = trans;
+        end
+        
         function setQuaternion(self, quat)
             %  Takes in complex number / tuple and normalizes it.
             %

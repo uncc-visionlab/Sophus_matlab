@@ -8,11 +8,14 @@ classdef KalmanSE3 < handle
     end
     methods (Static)
         function trajectory = demo()
-            deg_per_sec = 95*pi/180;
-            %initialState = [0, 0, 0, 0, 0, 0, ...
-            %    0, 0, 1, (deg_per_sec/3)^1/3, (deg_per_sec/3)^(1/3), (deg_per_sec/3)^(1/3)]';
-            initialState = [0, 0, 0, 0, 0, 0, ...
-                0, 1, 5, deg_per_sec, 0, 0]';
+            deg_per_sec = 45*pi/180;
+            initialState = [3, 3, 3, 0, 0, 0, ...
+               2, 2, -2, deg_per_sec, 0, 0]';
+            %pose = Se3([1, 1, 1, 0, 0, 0]);
+            %delta_pose = Se3([0, 0, 0, deg_per_sec, 0, 0]);
+            %rotate_around_pose = Se3([pose.getTranslation() - delta_pose.getSo3() * pose.getTranslation(); deg_per_sec; 0; 0]);
+            %new_pose = rotate_around_pose * rotate_around_pose * pose;
+            %new_pose.matrix()
             ekf_se3 = KalmanSE3(initialState);
             %gm = importGeometry('BracketTwoHoles.stl');
             %pdegplot(gm);
@@ -36,7 +39,7 @@ classdef KalmanSE3 < handle
                 x_k0 = ekf_se3.getState();
                 x_k1 = ekf_se3.f(x_k0, 0, dt);
                 ekf_se3.setState(x_k1);
-                transform = x_k1(1).matrix();
+                transform = x_k1(1).matrix()
                 %det(transform(1:3,1:3))
                 box.Pose = transform;                
                 show(box);
@@ -82,12 +85,12 @@ classdef KalmanSE3 < handle
         function x_predicted = f(self, x, u, dt)
             %! Predict given current pose and velocity
             % Constant velocity model: update position based on last known velocity
-            x_predicted(1) = self.state_SE3 * (self.state_SE3_dot * dt);
-            x_predicted(2) = self.state_SE3_dot
-            %x_predicted(1:6) = Se3.log(Se3.exp(x(1)) * Se3.exp(x(2) * dt));
-            % Update velocity directly based on measurements
-            %Se3.hat(x(1).log())
-            %Se3.hat(x_predicted.log())
+            pose = self.state_SE3;
+            delta_pose = self.state_SE3_dot * dt;
+            newTrans = pose.getTranslation() - delta_pose.getSo3() * pose.getTranslation() + delta_pose.getTranslation();
+            delta_pose.setTranslation(newTrans);
+            x_predicted(1) = delta_pose * self.state_SE3;
+            x_predicted(2) = self.state_SE3_dot;
         end
         % // new interface
         % void predict(const S& x, const double dt, S& out)
