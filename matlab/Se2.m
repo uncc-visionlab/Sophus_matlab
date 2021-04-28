@@ -266,6 +266,7 @@ classdef Se2 < Constants
         end
 
         function retval = mtimes(self, other)
+            % overload function for the * operator in MATLAB
             if (isequal(class(other),'Se2') == true)
                 retval = Se2(self * other);
             elseif numel(other) == 2

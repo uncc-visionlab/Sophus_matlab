@@ -227,6 +227,7 @@ classdef So2 < RotationMatrix
         end
 
         function retval = mtimes(self, other)
+            % overload function for the * operator in MATLAB
             if (isequal(class(other),'So2') == true)
                 % Group multiplication, which is rotation concatenation.
                 % We can assume that the squared-norm is close to 1 since we deal with a

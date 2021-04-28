@@ -506,8 +506,8 @@ classdef Se3 < Constants
                 upsilon_omega(1:3) = V_inv * self.translation;
             else
                 half_theta = (0.5) * theta;
-                V_inv = eye(3) - (0.5) * Omega + ...
-                    ((1) - theta * cos(half_theta) / ((2) * sin(half_theta))) / (theta * theta) * (Omega * Omega);
+                V_inv = (eye(3) - (0.5) * Omega + ...
+                    ((1) - theta * cos(half_theta) / ((2) * sin(half_theta))) / (theta * theta) * (Omega * Omega));
                 upsilon_omega(1:3) = V_inv * self.translation;
             end
         end
@@ -548,6 +548,7 @@ classdef Se3 < Constants
         end
 
         function retval = mtimes(self, other)
+            % overload function for the * operator in MATLAB
             if (isequal(class(other),'Se3') == true)
                 retval = Se3(self.so3 * other.so3, self.getTranslation() + self.so3 * other.getTranslation());
             elseif (isscalar(other) == true)
