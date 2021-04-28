@@ -421,7 +421,7 @@ classdef So3 < RotationMatrix
             self.unit_quaternion_ = self.unit_quaternion_/length;
         end
 
-        function retval = print(self)
+        function retval = toString(self)
             retval = sprintf("So3: (%f,%fi,%fj,%fk)", self.unit_quaternion_.compact())
         end
 

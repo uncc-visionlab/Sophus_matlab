@@ -364,7 +364,7 @@ classdef Se3 < Constants
             retval = Se3(So3.rotZ(z), [0; 0; 0]);
         end
 
-        function upsilon_omega = vee(omega)
+        function upsilon_omega = vee(Omega)
             %  vee-operator
             % 
             %  It takes 4x4-matrix representation ``Omega`` and maps it to the
@@ -397,9 +397,9 @@ classdef Se3 < Constants
                 % constructor from So3() object and translation vector
                 self.so3 = varargin{1};
                 self.translation = [varargin{2}(1); varargin{2}(2); varargin{2}(3)];
-            elseif (nargin == 2 && numel(varargin{1}) == 4 && size(varargin{1},1) == 3 && size(varargin{1},2) == 3 && ...
+            elseif (nargin == 2 && numel(varargin{1}) == 9 && size(varargin{1},1) == 3 && size(varargin{1},2) == 3 && ...
                     numel(varargin{2}) == 3 && size(varargin{2},1) == 3 && size(varargin{2},2) == 1)
-                % input is a 2x2 rotation matrix and translation vector
+                % input is a 3x3 rotation matrix and 3x1 translation vector
                 self.so3 = So3(varargin{1}(1:3,1:3));
                 self.translation = [varargin{2}(1); varargin{2}(2); varargin{2}(3)];
             else
@@ -521,7 +521,12 @@ classdef Se3 < Constants
             % 
             self.so3.normalize();
         end
-
+        
+        function retval = toString(self)
+            retval = sprintf("Se3: (%3g, %3g, %3g, %s)", self.translation(1), ...
+                self.translation(2), self.translation(3), self.so3.print());
+        end
+        
         function homogeneous_matrix = matrix(self)
             % Returns 4x4 matrix representation of the instance.
             %
@@ -542,21 +547,17 @@ classdef Se3 < Constants
             matrix = [self.rotationMatrix(), self.translation];
         end
 
-        function retval = print(self)
-            retval = sprintf("Se3: (%f,%f,%f) %f",self.translation(1),self.translation(2), self.translation(3), ...
-                self.so3.log_());
-        end
-
         function retval = mtimes(self, other)
             % overload function for the * operator in MATLAB
             if (isequal(class(other),'Se3') == true)
                 retval = Se3(self.so3 * other.so3, self.getTranslation() + self.so3 * other.getTranslation());
             elseif (isscalar(other) == true)
-                retval = Se3( self.so3 * other, self.getTranslation() * other);
+                %retval = Se3( self.so3 * other, self.getTranslation() * other);
+                retval = Se3.exp( self.log() * other);
             elseif numel(other) == 3
                 %  Group action on 3-points.
                 %
-                %  This function rotates and translates a two dimensional point ``p`` by the
+                %  This function rotates and translates a three dimensional point ``p`` by the
                 %  SE(3) element ``bar_T_foo = (bar_R_foo, t_bar)`` (= rigid body
                 %  transformation):
                 %
