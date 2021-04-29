@@ -445,6 +445,13 @@ classdef So3 < RotationMatrix
                 % Since squared-norm is close to 1, we do not need to calculate the costly
                 % square-root, but can use an approximation around 1 (see
                 % http://stackoverflow.com/a/12934750 for details).
+                %[aw, ax, ay, az] = self.unit_quaternion().parts();
+                %[bw, bx, by, bz] = other.unit_quaternion().parts();
+                %quat = quaternion(aw * bw - ax * bx - ay * by - az * bz, ...
+                %    aw * bx + ax * bw + ay * bz - az * by, ...
+                %    aw * by + ay * bw + az * bx - ax * bz, ...
+                %    aw * bz + az * bw + ax * by - ay * bx);
+                %retval = So3( quat);
                 retval = So3( self.unit_quaternion() * other.unit_quaternion());
             elseif (isscalar(other) == true)
                 retval = So3.exp(self.log() * other);

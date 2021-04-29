@@ -15,15 +15,24 @@ classdef KalmanSE3 < handle
             %x_mat = x(1).matrix()';
             %xdot_mat = x(2).matrix()';
             % // Generate a trajectory
-            traj(1:20) = Se3();
+            num_steps = 20;
+            traj(1:num_steps) = Se3();
             v_init = initialState(7:12);
             traj(1) = Se3(initialState(1:6));
+            velSe3 = Se3(v_init);
+            traj2 = zeros(6,num_steps);
+            vel2 = zeros(6,num_steps);
+            traj2(:,1) = initialState(1:6);
+            vel2(:,1) = initialState(7:12);
             for i=2:size(traj,2)
-                traj(i) = Se3.exp(traj(i-1).log()) * Se3.exp(v_init);
+                %traj(i) = Se3.exp(traj(i-1).log()) * Se3.exp(v_init);
+                traj(i) = traj(i-1) * velSe3
+                newpose = Se3.exp(traj2(:,i-1)) * Se3.exp(vel2(:,1));
+                traj2(:,i) = newpose.log();
                 x_mat_str = sprintf('%0.6g ',traj(i).log()');
                 fprintf(1,"%s\n",x_mat_str);
             end
-            
+            %return
             fd = fopen('output.txt','w+');
             fprintf(fd,"#x_pred;x_mes;x_ekf\n");
             x_mat_str = sprintf('%0.6g ',x(1).log()');
@@ -32,7 +41,7 @@ classdef KalmanSE3 < handle
             x_mat_str = sprintf('%0.6g;',x(1).log()');
             %x_mat_str(end)=';';
             fprintf(fd,"%s%s%s",x_mat_str,x_mat_str,x_mat_str);
-            x_mes = Se3([0,0,0,0,0,0]);
+            x_mes = Se3([0,0,0,0,0,0]');
             for i=2:size(traj,2)
                 x_ref = traj(i);
                 
@@ -43,14 +52,22 @@ classdef KalmanSE3 < handle
                 % Simulate system (constant velocity model)
                 % x = sys.f(x, u);
                 % std::cout << "New State: " << x.x.transpose() << ", " << x.v.transpose() << std::endl;
-                
+                     
+
                 % Predict state for current time-step using the filters
                 x_k = ekf_se3.getState();
                 x_kplus1 = ekf_se3.predict(x_k, 1.);
+                x_kplus1_p =  x_k(2) * x_k(1);
+                x_kplus1_pp = (Se3.exp(1. * x(2).log()) * Se3.exp(x(1).log()));
+                x_kplus1_ppp = (Se3.exp(1 * vel2(:,1)) * Se3.exp(traj2(:,i-1)));
+                x_kplus1_p_vec = x_kplus1_p.log();
+                x_kplus1_pp_vec = x_kplus1_pp.log();
+                x_kplus1_ppp_vec = x_kplus1_ppp.log();
                 ekf_se3.setState(x_kplus1);
                 %x_kplus1 = ekf_se3.getState();
                 x_k_pos_str = sprintf('%0.6g ',x_k(1).log()');
                 x_kplus1_pos_str = sprintf('%0.6g ',x_kplus1(1).log()');
+                %x_kplus1_pos_str = sprintf('%0.6g ',x_kplus1_ppp(1).log()');
                 x_kplus1_vel_str = sprintf('%0.6g ',x_kplus1(2).log()');
                 
                 fprintf(1,"Pred State: %s, %s\n", x_kplus1_pos_str, x_kplus1_vel_str);
