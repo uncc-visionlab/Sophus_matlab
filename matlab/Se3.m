@@ -67,7 +67,7 @@ classdef Se3 < Constants
             c6 = (0.5) * c4;
             c7 = sin(c6);
             c8 = c5 * c7;
-            c9 = pow(c3, -3.0 / 2.0);
+            c9 = c3^( -3.0 / 2.0);
             c10 = c7 * c9;
             c11 = (1.0) / c3;
             c12 = cos(c6);
@@ -96,13 +96,13 @@ classdef Se3 < Constants
             c35 = c34 * omega(2);
             c36 = c32 * omega(2);
             c37 = c34 * omega(3);
-            c38 = pow(c3, -5.0 / 2.0);
+            c38 = c3^( -5.0 / 2.0);
             c39 = (3) * c28 * c38 * omega(1);
             c40 = c26 * c9;
             c41 = -c20 * c30 + c20;
             c42 = c27 * c9 * omega(1);
             c43 = c42 * omega(2);
-            c44 = pow(c3, -2);
+            c44 = c3^( -2);
             c45 = (2) * c31 * c44 * omega(1);
             c46 = c45 * omega(2);
             c47 = c29 * omega(3);
@@ -552,6 +552,10 @@ classdef Se3 < Constants
 
         function retval = mtimes(self, other)
             % overload function for the * operator in MATLAB
+            if (isequal(class(self),'Se3') == 0)
+                fprintf(1,"You can only multiply Se3 objects from the right by a scalar.");
+                return;
+            end
             if (isequal(class(other),'Se3') == true)
                 retval = Se3(self.so3 * other.so3, self.getTranslation() + self.so3 * other.getTranslation());
             elseif (isscalar(other) == true)

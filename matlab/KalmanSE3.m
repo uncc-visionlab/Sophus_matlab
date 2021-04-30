@@ -15,7 +15,7 @@ classdef KalmanSE3 < handle
             %x_mat = x(1).matrix()';
             %xdot_mat = x(2).matrix()';
             % // Generate a trajectory
-            num_steps = 20;
+            num_steps = 3;
             traj(1:num_steps) = Se3();
             v_init = initialState(7:12);
             traj(1) = Se3(initialState(1:6));
@@ -29,8 +29,8 @@ classdef KalmanSE3 < handle
                 traj(i) = traj(i-1) * velSe3
                 newpose = Se3.exp(traj2(:,i-1)) * Se3.exp(vel2(:,1));
                 traj2(:,i) = newpose.log();
-                x_mat_str = sprintf('%0.6g ',traj(i).log()');
-                fprintf(1,"%s\n",x_mat_str);
+                %x_mat_str = sprintf('%0.6g ',traj(i).log()');
+                %fprintf(1,"%s\n",x_mat_str);
             end
             %return
             fd = fopen('output.txt','w+');
@@ -42,6 +42,7 @@ classdef KalmanSE3 < handle
             %x_mat_str(end)=';';
             fprintf(fd,"%s%s%s",x_mat_str,x_mat_str,x_mat_str);
             x_mes = Se3([0,0,0,0,0,0]');
+            dt = 1;
             for i=2:size(traj,2)
                 x_ref = traj(i);
                 
@@ -56,13 +57,14 @@ classdef KalmanSE3 < handle
 
                 % Predict state for current time-step using the filters
                 x_k = ekf_se3.getState();
-                x_kplus1 = ekf_se3.predict(x_k, 1.);
-                x_kplus1_p =  x_k(2) * x_k(1);
-                x_kplus1_pp = (Se3.exp(1. * x(2).log()) * Se3.exp(x(1).log()));
-                x_kplus1_ppp = (Se3.exp(1 * vel2(:,1)) * Se3.exp(traj2(:,i-1)));
-                x_kplus1_p_vec = x_kplus1_p.log();
-                x_kplus1_pp_vec = x_kplus1_pp.log();
-                x_kplus1_ppp_vec = x_kplus1_ppp.log();
+                x_kplus1 = ekf_se3.predict(x_k, dt);
+                ekf_se3.getJacobian(x_k);
+                %x_kplus1_p =  (x_k(2) * dt) * x_k(1);
+                %x_kplus1_pp = (Se3.exp(dt * x(2).log()) * Se3.exp(x(1).log()));
+                %x_kplus1_ppp = (Se3.exp(dt * vel2(:,1)) * Se3.exp(traj2(:,i-1)));
+                %x_kplus1_p_vec = x_kplus1_p.log();
+                %x_kplus1_pp_vec = x_kplus1_pp.log();
+                %x_kplus1_ppp_vec = x_kplus1_ppp.log();
                 ekf_se3.setState(x_kplus1);
                 %x_kplus1 = ekf_se3.getState();
                 x_k_pos_str = sprintf('%0.6g ',x_k(1).log()');
@@ -81,19 +83,22 @@ classdef KalmanSE3 < handle
                 % }
                 
                 if (mod(i,3) == 0)
-                    %std::cout << "UPDATING POSITION" << std::endl;
+                    %fprintf(1, "UPDATING POSITION\n");
                     %x_mes = noise.addNoise(x_ref);
                     %ekf.update(pos_measurement, x_mes);
                 end
                 %auto cov = pos_measurement.getCovariance();
                 %std::cout << "covariance:\n"
                 %          << ekf.getCovariance().matrix() << std::endl;
-                x_mes_str = sprintf('%0.6g ',x_mes(1).log()');
-                %std::cout << "x_pred: " << x_ref.transpose() << std::endl;
-                %std::cout << "x_mes: " << x_mes.transpose() << std::endl;
-                %std::cout << "x_ekf: " << x_ekf.x.transpose() << std::endl;
+                x_kplus1_corrected = ekf_se3.getState();
+                x_kplus1_corrected_str = sprintf('%0.6g ',x_kplus1_corrected(1).log()');
+                x_meas_str = sprintf('%0.6g ',x_mes(1).log()');
+                
+                fprintf(1,"x_pred: %s\n", x_kplus1_pos_str);
+                fprintf(1,"x_mes: %s\n", x_meas_str);
+                fprintf(1,"x_ekf: %s\n", x_kplus1_corrected_str);
                 %csv.write({x_ref, x_mes, x_ekf.x});
-                fprintf(fd,"%s%s%s",x_k_pos_str,x_k_pos_str,x_kplus1_pos_str);
+                fprintf(fd,"%s%s%s\n",x_k_pos_str, x_meas_str, x_kplus1_corrected_str);
             end
             fclose(fd);
             
@@ -177,10 +182,15 @@ classdef KalmanSE3 < handle
             self.state_SE3_dot = x(2);
         end
         
-        function J = computeJacobian(self)
-            J_se3 = self.state_SE3.Dx_this_mul_exp_x_at_0();
-            J_se3_dot = zeros(7,6);
+        function J = getJacobian(self, x)
+            fprintf(1,"SystemModel::getJacobian\n");
+            J_se3 = Se3.Dx_exp_x(x(1).log());
+            J_se32 = x(1).Dx_this_mul_exp_x_at_0();
+            J_se3_dot = Se3.Dx_exp_x(x(2).log());
+            J_se3_dot2 = x(2).Dx_this_mul_exp_x_at_0();
+            
             J = [J_se3; J_se3_dot];
+            fprintf(1,"SystemModel jacobian:\n %s\n", mat2str(J_se3));
         end
         
         function x_predicted = f(self, x, u, dt)
@@ -204,8 +214,8 @@ classdef KalmanSE3 < handle
         % // new interface
         function out = predict(self, x, dt)
             fprintf(1,"SystemModel::predict\n");
-            out(1) =  x(1) * x(2);
-            %out(1) = (Se3.exp(dt * x(2).log()) * Se3.exp(x(1).log()));
+            %out(1) =  x(1) * x(2);
+            out(1) = Se3.exp(dt * x(2).log()) * Se3.exp(x(1).log());
             out(2) = x(2);
         end
     end
