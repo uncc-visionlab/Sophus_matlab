@@ -1,5 +1,6 @@
 classdef KalmanSO3xR3 < handle
-    % Extended Kalman filter for 3D pose using Lie Group SE(3)
+    % Extended Kalman filter for 3D pose using the product space of
+    % Lie Group SO(3) and R3 
 
     properties
         ekf_SO3xR3
@@ -19,7 +20,7 @@ classdef KalmanSO3xR3 < handle
             v_init = initialState(7:12);
             traj(1) = So3xR3(initialState(1:6));
             for i=2:size(traj,2)
-                traj(i) = So3xR3.exp(traj(i-1).log()) * So3xR3.exp(v_init);
+                traj(i) = So3xR3.pseudo_exp(traj(i-1).pseudo_log()) * So3xR3.pseudo_exp(v_init);
             end
             x_mat_str = sprintf('%0.6g ',x(1).log()');
             xdot_mat_str = sprintf('%0.6g ',x(2).pseudo_log()');

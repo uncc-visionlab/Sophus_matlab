@@ -9,12 +9,12 @@ classdef KalmanSE3 < handle
     methods (Static)
         function trajectory = kalman_lie()
             initialState = [0, 0, 0, 0, 0, 0, ...
-                .05, 0.1, 0, 0, 0.1, 0]';
+                0.05, 0.1, 0, 0, 0.1, 0]';
             ekf_se3 = KalmanSE3(initialState);
             x = ekf_se3.getState();
             %x_mat = x(1).matrix()';
             %xdot_mat = x(2).matrix()';
-            % // Generate a trajectory
+            % Generate a trajectory
             num_steps = 3;
             traj(1:num_steps) = Se3();
             v_init = initialState(7:12);
@@ -24,15 +24,16 @@ classdef KalmanSE3 < handle
             vel2 = zeros(6,num_steps);
             traj2(:,1) = initialState(1:6);
             vel2(:,1) = initialState(7:12);
+            dt = 1.0;
             for i=2:size(traj,2)
                 %traj(i) = Se3.exp(traj(i-1).log()) * Se3.exp(v_init);
-                traj(i) = traj(i-1) * velSe3
+                traj(i) = (traj(i-1) * dt) * velSe3;
                 newpose = Se3.exp(traj2(:,i-1)) * Se3.exp(vel2(:,1));
                 traj2(:,i) = newpose.log();
-                %x_mat_str = sprintf('%0.6g ',traj(i).log()');
-                %fprintf(1,"%s\n",x_mat_str);
+                x_mat_str = sprintf('%0.6g ',traj(i).log()');
+                fprintf(1,"traj[%d]: %s\n",i,x_mat_str);
             end
-            %return
+
             fd = fopen('output.txt','w+');
             fprintf(fd,"#x_pred;x_mes;x_ekf\n");
             x_mat_str = sprintf('%0.6g ',x(1).log()');
@@ -42,7 +43,6 @@ classdef KalmanSE3 < handle
             %x_mat_str(end)=';';
             fprintf(fd,"%s%s%s",x_mat_str,x_mat_str,x_mat_str);
             x_mes = Se3([0,0,0,0,0,0]');
-            dt = 1;
             for i=2:size(traj,2)
                 x_ref = traj(i);
                 
@@ -93,8 +93,10 @@ classdef KalmanSE3 < handle
                 x_kplus1_corrected = ekf_se3.getState();
                 x_kplus1_corrected_str = sprintf('%0.6g ',x_kplus1_corrected(1).log()');
                 x_meas_str = sprintf('%0.6g ',x_mes(1).log()');
+                x_pred_str = sprintf('%0.6g ',x_ref(1).log()');
                 
-                fprintf(1,"x_pred: %s\n", x_kplus1_pos_str);
+                %fprintf(1,"x_pred: %s\n", x_kplus1_pos_str);
+                fprintf(1,"x_pred: %s\n", x_pred_str);
                 fprintf(1,"x_mes: %s\n", x_meas_str);
                 fprintf(1,"x_ekf: %s\n", x_kplus1_corrected_str);
                 %csv.write({x_ref, x_mes, x_ekf.x});
@@ -167,8 +169,8 @@ classdef KalmanSE3 < handle
                 fprintf(1,"Could not initialize the KalmanSE3 filter.\n");
                 return;
             end
-            self.state_SE3.matrix()
-            self.state_SE3_dot.matrix()
+            %self.state_SE3.matrix()
+            %self.state_SE3_dot.matrix()
             %self.f(self.getState(), 0, 1);
             %trackingEKF()
         end
@@ -184,7 +186,7 @@ classdef KalmanSE3 < handle
         
         function J = getJacobian(self, x)
             fprintf(1,"SystemModel::getJacobian\n");
-            J_se3 = Se3.Dx_exp_x(x(1).log());
+            J_se3 = Se3.Dx_exp_x(x(1).log())
             J_se32 = x(1).Dx_this_mul_exp_x_at_0();
             J_se3_dot = Se3.Dx_exp_x(x(2).log());
             J_se3_dot2 = x(2).Dx_this_mul_exp_x_at_0();
