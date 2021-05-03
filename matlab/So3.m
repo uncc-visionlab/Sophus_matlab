@@ -40,7 +40,18 @@ classdef So3 < RotationMatrix
         %// public static functions
         %////////////////////////////////////////////////////////////////////////////
 
-
+        function J_r = right_Jacobian(omega)
+            theta_sq = sum(omega.^2);
+            theta = sqrt(theta_sq);
+            if (theta < Constants.epsilon)
+                J_r = eye(3);
+            else
+                Omega = So3.hat(omega);
+                Omega_sq = Omega * Omega;
+                J_r = (eye(3) + ((1) - cos(theta)) / (theta_sq) * Omega + (theta - sin(theta)) / (theta_sq * theta) * Omega_sq);
+            end
+        end
+        
         function J = Dx_exp_x(omega)
             %  Returns derivative of exp(x) wrt. x.
             %
