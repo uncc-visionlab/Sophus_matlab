@@ -30,7 +30,30 @@ classdef Se3 < Constants
         % ////////////////////////////////////////////////////////////////////////////
         % // public static functions
         % ////////////////////////////////////////////////////////////////////////////
-
+        function J_r = right_Jacobian(upsilon_omega)
+            se3_obj = Se3(upsilon_omega);
+            theta_sq = sum(upsilon_omega(4:6).^2);
+            theta = sqrt(theta_sq);
+            theta_sq = theta*theta;
+            Omega = -se3_obj.Adj();
+            Omega_sq = Omega * Omega;
+            J_r = eye(6) + (4 - theta * sin(theta) - 4 * cos(theta)) / (2*theta_sq) * Omega + ...
+                (4 * theta - 5 * sin(theta) + theta * cos(theta)) / (2*theta_sq*theta) * Omega_sq + ...
+                (2 - theta * sin(theta) - 2 * cos(theta)) / (2*theta_sq*theta_sq) * Omega_sq * Omega + ...
+                (2 * theta - 3 * sin(theta) + theta * cos(theta)) / (2*theta_sq*theta_sq*theta) * Omega_sq * Omega_sq;
+        end
+        function J_l = left_Jacobian(upsilon_omega)
+            se3_obj = Se3(upsilon_omega);
+            theta_sq = sum(upsilon_omega(4:6).^2);
+            theta = sqrt(theta_sq);
+            theta_sq = theta*theta;
+            Omega = se3_obj.Adj();
+            Omega_sq = Omega * Omega;
+            J_l = eye(6) + (4 - theta * sin(theta) - 4 * cos(theta)) / (2*theta_sq) * Omega + ...
+                (4 * theta - 5 * sin(theta) + theta * cos(theta)) / (2*theta_sq*theta) * Omega_sq + ...
+                (2 - theta * sin(theta) - 2 * cos(theta)) / (2*theta_sq*theta_sq) * Omega_sq * Omega + ...
+                (2 * theta - 3 * sin(theta) + theta * cos(theta)) / (2*theta_sq*theta_sq*theta) * Omega_sq * Omega_sq;
+        end
         function J = Dx_exp_x(upsilon_omega)
             %  Returns derivative of exp(x) wrt. x.
             % 
