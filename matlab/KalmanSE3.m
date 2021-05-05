@@ -1,3 +1,14 @@
+
+% Resources:
+% Kalman for SE(3) - https://hal.archives-ouvertes.fr/hal-01122406/document
+% On-manifold optimization - https://arxiv.org/pdf/1512.02363.pdf
+% SE(3) vs. SO(3) x R3 - https://arxiv.org/pdf/1805.02543.pdf
+% SE(3) On-manifold with a retration (to make it SO(3) x R3) - http://rpg.ifi.uzh.ch/docs/TRO16_forster.pdf
+% SE(3) Lie Group theory and Jacobians of the SE(3) exponential and log
+% maps - http://asrl.utias.utoronto.ca/~tdb/bib/barfoot_ser17.pdf
+% SE(3) Tutorial and (some) useful derivatives - https://ingmec.ual.es/~jlblanco/papers/jlblanco2010geometry3D_techrep.pdf
+% Kalman filtering - https://docs.ufpr.br/~danielsantos/ProbabilisticRobotics.pdf
+% SE(3) and other parameterizations of 3D pose change - http://campar.in.tum.de/pub/tbirdal20183dv/tbirdal20183dv.pdf
 classdef KalmanSE3 < handle
     % Extended Kalman filter for 3D pose using Lie Group SE(3)
     
