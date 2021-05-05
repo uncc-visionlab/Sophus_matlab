@@ -40,7 +40,7 @@ classdef So3 < RotationMatrix
         %// public static functions
         %////////////////////////////////////////////////////////////////////////////
 
-        function J_r = right_Jacobian(omega)
+        function J_r = right_JacobianExpmap(omega) % (right) ExpmapDerivative in GTSAM
             theta_sq = sum(omega.^2);
             theta = sqrt(theta_sq);
             if (theta < Constants.epsilon)
@@ -51,18 +51,23 @@ classdef So3 < RotationMatrix
                 J_r = (eye(3) + ((1) - cos(theta)) / (theta_sq) * Omega + (theta - sin(theta)) / (theta_sq * theta) * Omega_sq);
             end
         end
-        function J_l = left_Jacobian(omega)
+        function J_rInv = right_JacobianLogmap(omega) % (right) LogmapDerivative in GTSAM
             theta_sq = sum(omega.^2);
             theta = sqrt(theta_sq);
             if (theta < Constants.epsilon)
-                J_l = eye(3);
+                J_rInv = eye(3);
             else
                 Omega = So3.hat(omega);
                 Omega_sq = Omega * Omega;
-                J_l = (eye(3) + ((1) - cos(theta)) / (theta_sq) * Omega - (theta - sin(theta)) / (theta_sq * theta) * Omega_sq);
+                J_rInv = (eye(3) + 0.5 * Omega + ((1/theta_sq) + ((1+cos(theta))/(2*theta*sin(theta)))) * Omega_sq);
             end
         end
-        
+        function J_l = left_JacobianExp(omega) % (left) ExpmapDerivative in GTSAM            
+            J_l = right_JacobianExp(-omega);
+        end
+        function J_lInv = left_JacobianLog(omega) % (left) LogmapDerivative in GTSAM
+            J_lInv = right_JacobianExp(-omega);
+        end
         function J = Dx_exp_x(omega)
             %  Returns derivative of exp(x) wrt. x.
             %

@@ -2,13 +2,14 @@ classdef KalmanSE3 < handle
     % Extended Kalman filter for 3D pose using Lie Group SE(3)
     
     properties
-        ekf_SE3
         state_SE3
         state_SE3_dot
         num_diff
+        dt
     end
     methods (Static)
         function trajectory = kalman_lie()
+            clc;
             initialState = [0, 0, 0, 0, 0, 0, ...
                 0.05, 0.1, 0, 0, 0.1, 0]';
             ekf_se3 = KalmanSE3(initialState);
@@ -16,7 +17,7 @@ classdef KalmanSE3 < handle
             %x_mat = x(1).matrix()';
             %xdot_mat = x(2).matrix()';
             % Generate a trajectory
-            num_steps = 5;
+            num_steps = 7;
             %traj(1:num_steps) = Se3();
             v_init = initialState(7:12);
             traj(1) = Se3(initialState(1:6));
@@ -25,7 +26,9 @@ classdef KalmanSE3 < handle
             vel2 = zeros(6,num_steps);
             traj2(:,1) = initialState(1:6);
             vel2(:,1) = initialState(7:12);
-            dt = 1.0;
+            dt = 1;
+            ekf_se3.setTimeStep(dt);
+
 %             for i=2:size(traj,2)
 %                 %traj(i) = Se3.exp(traj(i-1).log()) * Se3.exp(v_init);
 %                 traj(i) = (traj(i-1) * dt) * velSe3;
@@ -56,7 +59,7 @@ classdef KalmanSE3 < handle
 
                 % Predict state for current time-step using the filters
                 x_k = ekf_se3.getState();
-                x_kplus1 = ekf_se3.predict(x_k, dt);
+                x_kplus1 = ekf_se3.predict(x_k);
                 ekf_se3.getJacobian(x_k);
                 %x_kplus1_p =  (x_k(2) * dt) * x_k(1);
                 %x_kplus1_pp = (Se3.exp(dt * x(2).log()) * Se3.exp(x(1).log()));
@@ -90,9 +93,10 @@ classdef KalmanSE3 < handle
                 %std::cout << "covariance:\n"
                 %          << ekf.getCovariance().matrix() << std::endl;
                 x_kplus1_corrected = ekf_se3.getState();
-                x_kplus1_corrected_str = sprintf('%0.6g ',x_kplus1_corrected(1:6)');
-                x_meas_str = sprintf('%0.6g ',x_mes(1).log()');
+
                 x_pred_str = sprintf('%0.6g ',x_ref(1).log()');
+                x_meas_str = sprintf('%0.6g ',x_mes(1).log()');
+                x_kplus1_corrected_str = sprintf('%0.6g ',x_kplus1_corrected(1:6)');
                 
                 %fprintf(1,"x_pred: %s\n", x_kplus1_pos_str);
                 fprintf(1,"x_pred: %s\n", x_pred_str);
@@ -104,12 +108,14 @@ classdef KalmanSE3 < handle
             fclose(fd);
             
             %State x_future;
-            x_future = ekf_se3.predict(ekf_se3.getState(), 5);
+            ekf_se3.setTimeStep(5);
+            x_future = ekf_se3.predict(ekf_se3.getState());
             x_future_pos_str = sprintf('%0.6g ',x_future(1:6)');
             fprintf(1,"Future (dt=5): %s\n", x_future_pos_str);
         end
         
         function trajectory = demo()
+            clc;
             rad_per_sec = 45*pi/180;
             initialState = [3, 3, 3, 0, 0, 0, ...
                 3, 0, 0, rad_per_sec, 0, 0]';
@@ -134,12 +140,17 @@ classdef KalmanSE3 < handle
             drawnow;
             start_time = 0;
             end_time = 1;
-            frames_per_second = 10;
+            frames_per_second = 3;
             dt = 1/frames_per_second;
+            ekf_se3.setTimeStep(dt);
             trajectory = x_k0(1:6);
             for t=start_time:dt:(end_time-dt)
                 x_k0 = ekf_se3.getState();
-                x_k1 = ekf_se3.f(x_k0, dt);
+                %x_k1 = ekf_se3.f(x_k0);
+                x_k1 = ekf_se3.predict(x_k0);
+
+                %J2 = ekf_se3.num_diff.df(x_k0)
+                ekf_se3.getJacobian(x_k0);
                 ekf_se3.setState(x_k1);
                 transform = Se3(x_k1(1:6)).matrix()
                 %det(transform(1:3,1:3))
@@ -169,7 +180,9 @@ classdef KalmanSE3 < handle
                 fprintf(1,"Could not initialize the KalmanSE3 filter.\n");
                 return;
             end
-            self.num_diff = NumericalDiff(@self.f, 12, 12)
+            %self.num_diff = NumericalDiff(@self.f, 12, 12, 'Forward');
+            self.num_diff = NumericalDiff(@self.f, 12, 12, 'Central');
+            self.dt = 1.0;
             %self.state_SE3.matrix()
             %self.state_SE3_dot.matrix()
             %self.f(self.getState(), 0, 1);
@@ -185,37 +198,44 @@ classdef KalmanSE3 < handle
             self.state_SE3_dot = x(7:12);
         end
         
-        function J = getJacobian(self, x, dt)
-            if (nargin < 3)
-                dt = 1.0;
-            end
-            fprintf(1,"SystemModel::getJacobian\n");
-            pose_SE3 = Se3(x(1:6));
-            deltapose_SE3 = Se3(x(7:12) * dt);
-            newpose_SE3 = deltapose_SE3 * pose_SE3;
-            J_se3 = Se3.Dx_exp_x(newpose_SE3.log())
-            J_se32 = pose_SE3.Dx_this_mul_exp_x_at_0();
-            J_so3 = So3.right_Jacobian(newpose_SE3.getSo3().log());
-            J_se3_dot = Se3.Dx_exp_x(deltapose_SE3.log());
-            J_se3_dot2 = deltapose_SE3.Dx_this_mul_exp_x_at_0();
-            J_r = Se3.right_Jacobian(newpose_SE3.log());
-            J_l = Se3.left_Jacobian(newpose_SE3.log());
-            J2 = self.num_diff.df(x)
-            %J_se3 = [J_se3, eye(6); zeros(6,6), eye(6)]
-            J_so3xr3 = [[eye(3), J_so3; zeros(3,3), J_so3], eye(6); zeros(6,6), eye(6)];
-            %fprintf(1,"SystemModel numerical jacobian:\n %s\n", mat2str(J2));
-            %fprintf(1,"SystemModel jacobian:\n %s\n", mat2str(J));
+        function setTimeStep(self, dt)
+            self.dt = dt;
         end
         
-        function x_kplus1 = f(self, x_k, dt)
-            if (nargin < 3)
-                dt = 1.0;
-            end
+        function J = getJacobian(self, x)
+            fprintf(1,"SystemModel::getJacobian\n");
+            pose_SE3 = Se3(x(1:6));
+            deltapose_SE3 = Se3(x(7:12) * self.dt);
+            %newpose_SE3 = deltapose_SE3 * pose_SE3;
+            newpose_SE3 = self.transform(x);
+            %J_se3 = Se3.Dx_exp_x(newpose_SE3.log());
+            %J_se32 = pose_SE3.Dx_this_mul_exp_x_at_0();
+            %J_so3 = So3.right_JacobianExpmap(newpose_SE3.getSo3().log());
+            %J_se3_dot = Se3.Dx_exp_x(deltapose_SE3.log());
+            %J_se3_dot2 = deltapose_SE3.Dx_this_mul_exp_x_at_0();
+            %J_r_pose = Se3.right_JacobianExpmap(newpose_SE3.log())
+            J_r_pose = Se3.right_JacobianExpmap(x(1:6));
+            J_r_deltapose = Se3.right_JacobianExpmap(x(7:12));
+            J1 = [J_r_pose, J_r_deltapose; zeros(6,6), eye(6,6)]
+            %J_rInv = Se3.right_JacobianLogmap(newpose_SE3.log())
+            J2 = self.num_diff.df(x)
+            J_r_pose(1:6,1:6)-J2(1:6,1:6)
+            %J_se3 = [J_se3, eye(6); zeros(6,6), eye(6)]
+            %J_so3xr3 = [[eye(3), J_so3; zeros(3,3), J_so3], eye(6); zeros(6,6), eye(6)];
+            %fprintf(1,"SystemModel numerical jacobian:\n %s\n", mat2str(J2));
+            %fprintf(1,"SystemModel jacobian:\n %s\n", mat2str(J));
+            J = J1;
+        end
+        
+        function x_kplus1 = f(self, x_k)
+            %if (nargin < 3)
+            %    dt = 1.0;
+            %end
             %! Predict given current pose and velocity
             % Constant velocity model: update position based on last known velocity            
-            pose_SE3 = Se3(x_k(1:6));
+            %pose_SE3 = Se3(x_k(1:6));
             % compute delta pose over time frame dt
-            deltapose_SE3 = Se3(x_k(7:12) * dt);
+            %deltapose_SE3 = Se3(x_k(7:12) * dt);
             
             % decouple rotation and translation components by removing the
             % motion of the frame origin due to the rotational component
@@ -227,8 +247,9 @@ classdef KalmanSE3 < handle
             % left composition of transformations
             %x_predicted(1) = delta_pose * self.state_SE3;
             %newpose_SE3 = deltapose_SE3 * self.state_SE3;
-            newpose_SE3 = deltapose_SE3 * pose_SE3;
+            %newpose_SE3 = deltapose_SE3 * pose_SE3;
             %newpose_SE3 = pose_SE3 * deltapose_SE3;
+            newpose_SE3 = self.transform(x_k);
             x_kplus1 = zeros(12,1);
             x_kplus1(1:6,1) = newpose_SE3.log();
             % constant velocity assumption
@@ -237,15 +258,24 @@ classdef KalmanSE3 < handle
         end
         
         % // new interface
-        function out = predict(self, x, dt)
+        function x_kplus1 = predict(self, x_k)
             fprintf(1,"SystemModel::predict\n");
-            out = zeros(12,1);
-            pose_SE3 = Se3(x(1:6));
-            deltapose_SE3 = Se3(x(7:12) * dt);
+            x_kplus1 = zeros(12,1);
+            %pose_SE3 = Se3(x(1:6));
+            %deltapose_SE3 = Se3(x(7:12) * self.dt);
             % compute delta pose over time frame dt
-            newpose_SE3 = deltapose_SE3 * pose_SE3;
-            out(1:6,1) = newpose_SE3.log();
-            out(7:12,1) = x(7:12);
+            %newpose_SE3 = deltapose_SE3 * pose_SE3;
+            newpose_SE3 = self.transform(x_k);
+            x_kplus1(1:6,1) = newpose_SE3.log();
+            x_kplus1(7:12,1) = x_k(7:12);
+        end
+        
+        function newpose_SE3 = transform(self, x)
+            pose_SE3 = Se3(x(1:6));
+            deltapose_SE3 = Se3(x(7:12) * self.dt);
+            %newpose_SE3 = deltapose_SE3 * pose_SE3;
+            newpose_SE3 = pose_SE3 * deltapose_SE3;
+            %newpose_SE3 = Se3(x(1:6) + x(7:12) * self.dt);
         end
     end
 end

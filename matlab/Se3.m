@@ -30,29 +30,57 @@ classdef Se3 < Constants
         % ////////////////////////////////////////////////////////////////////////////
         % // public static functions
         % ////////////////////////////////////////////////////////////////////////////
-        function J_r = right_Jacobian(upsilon_omega)
-            se3_obj = Se3(upsilon_omega);
+        function Q_r = ComputeQforExpmapDerivative(upsilon_omega)
             theta_sq = sum(upsilon_omega(4:6).^2);
             theta = sqrt(theta_sq);
-            theta_sq = theta*theta;
-            Omega = -se3_obj.Adj();
-            Omega_sq = Omega * Omega;
-            J_r = eye(6) + (4 - theta * sin(theta) - 4 * cos(theta)) / (2*theta_sq) * Omega + ...
-                (4 * theta - 5 * sin(theta) + theta * cos(theta)) / (2*theta_sq*theta) * Omega_sq + ...
-                (2 - theta * sin(theta) - 2 * cos(theta)) / (2*theta_sq*theta_sq) * Omega_sq * Omega + ...
-                (2 * theta - 3 * sin(theta) + theta * cos(theta)) / (2*theta_sq*theta_sq*theta) * Omega_sq * Omega_sq;
+            V_hat = So3.hat(upsilon_omega(1:3));
+            W_hat = So3.hat(upsilon_omega(4:6));
+            WVW = W_hat * V_hat * W_hat;
+            % The closed-form formula in Barfoot14tro eq. (102)
+            if (abs(theta) > Constants.epsilon)
+                s = sin(theta);
+                c = cos(theta);
+                theta2 = theta * theta;
+                theta3 = theta2 * theta;
+                theta4 = theta3 * theta;
+                theta5 = theta4 * theta;
+                % Invert the sign of odd-order terms to have the right Jacobian
+                Q_r = -0.5 * V_hat + (theta - s) / theta3 * (W_hat * V_hat + V_hat * W_hat - WVW) + ...
+                    (1 - theta2 / 2 - c) / theta4 * (W_hat * W_hat * V_hat + V_hat * W_hat * W_hat - 3 * WVW) - ...
+                    0.5 * ((1 - theta2 / 2 - c) / theta4 - 3 * (theta - s - theta3 / 6.) / theta5) * (WVW * W_hat + W_hat * WVW);
+            else
+                Q_r = -0.5 * V_hat + 1. / 6. * (W_hat * V_hat + V_hat * W_hat - WVW) - ...
+                    1. / 24. * (W_hat * W_hat * V_hat + V_hat * W_hat * W_hat - 3 * WVW) + ...
+                    1. / 120. * (WVW * W_hat + W_hat * WVW);
+            end
         end
-        function J_l = left_Jacobian(upsilon_omega)
-            se3_obj = Se3(upsilon_omega);
-            theta_sq = sum(upsilon_omega(4:6).^2);
-            theta = sqrt(theta_sq);
-            theta_sq = theta*theta;
-            Omega = se3_obj.Adj();
-            Omega_sq = Omega * Omega;
-            J_l = eye(6) + (4 - theta * sin(theta) - 4 * cos(theta)) / (2*theta_sq) * Omega + ...
-                (4 * theta - 5 * sin(theta) + theta * cos(theta)) / (2*theta_sq*theta) * Omega_sq + ...
-                (2 - theta * sin(theta) - 2 * cos(theta)) / (2*theta_sq*theta_sq) * Omega_sq * Omega + ...
-                (2 * theta - 3 * sin(theta) + theta * cos(theta)) / (2*theta_sq*theta_sq*theta) * Omega_sq * Omega_sq;
+        
+        function J_r = right_JacobianExpmap(upsilon_omega) %ExpmapDerivative in GTSAM
+            % Equation J_l from p. 253 or Equation (7.94) p. 236 from STATE
+            % ESTIMATION FOR ROBOTICS, Timothy D. Barfoot 2021.
+            %             se3_obj = Se3(upsilon_omega);
+            %             theta_sq = sum(upsilon_omega(4:6).^2);
+            %             theta = sqrt(theta_sq);
+            %             theta_sq = theta*theta;
+            %             Omega = -se3_obj.Adj();
+            %             Omega_sq = Omega * Omega;
+            %             J_l = eye(6) + (4 - theta * sin(theta) - 4 * cos(theta)) / (2*theta_sq) * Omega + ...
+            %                 (4 * theta - 5 * sin(theta) + theta * cos(theta)) / (2*theta_sq*theta) * Omega_sq + ...
+            %                 (2 - theta * sin(theta) - 2 * cos(theta)) / (2*theta_sq*theta_sq) * Omega_sq * Omega + ...
+            %                 (2 * theta - 3 * sin(theta) + theta * cos(theta)) / (2*theta_sq*theta_sq*theta) * Omega_sq * Omega_sq;
+            %             J_r = findJ_l(-upsilon_omega)
+            w = upsilon_omega(1:3);
+            Jw_rSO3 = So3.right_JacobianExpmap(w);
+            Q_r = Se3.ComputeQforExpmapDerivative(upsilon_omega);
+            J_r = [Jw_rSO3, Q_r; zeros(3,3), Jw_rSO3];
+        end
+        function J_rInv = right_JacobianLogmap(upsilon_omega) % LogmapDerivative in GTSAM
+            xi = Se3(upsilon_omega).log();
+            w = xi(1:3);
+            Jw_rSO3 = So3.right_JacobianLogmap(w);
+            Q = Se3.ComputeQforExpmapDerivative(xi);
+            Q2 = -Jw_rSO3 * Q * Jw_rSO3;
+            J_rInv = [Jw_rSO3, Q2; zeros(3,3), Jw_rSO3];
         end
         function J = Dx_exp_x(upsilon_omega)
             %  Returns derivative of exp(x) wrt. x.
