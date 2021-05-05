@@ -25,7 +25,14 @@
 % GTSAM development from Github
 % Compile the development github source set (-DGTSAM_BUILD_PYTHON=ON) for
 % Python bindings to be compiles (did not work 5/5/2021)
-% cmake -DGTSAM_INSTALL_MATLAB_TOOLBOX=ON -DGTSAM_BUILD_PYTHON=OFF -DMatlab_ROOT_DIR=/usr/local/bin/matlab/R2020b -DCMAKE_INSTALL_PREFIX:PATH=$HOME/gtsam-dev -DGTSAM_TOOLBOX_INSTALL_PATH:PATH=$HOME/gtsam-dev/toolbox -DGTSAM_PYTHON_VERSION=3.6 ..
+% git clone https://github.com/borglab/gtsam.git
+% cd gtsam
+% mkdir build
+% cd build
+% cmake -DGTSAM_INSTALL_MATLAB_TOOLBOX=ON -DGTSAM_BUILD_PYTHON=OFF -DMatlab_ROOT_DIR=/usr/local/bin/matlab/R2020b -DCMAKE_INSTALL_PREFIX:PATH=$HOME/gtsam-dev -DGTSAM_TOOLBOX_INSTALL_PATH:PATH=$HOME/gtsam-dev/toolbox -DGTSAM_PYTHON_VERSION=3 ..
+% make
+% make check
+% make install
 %
 % GTSAM version rc4.1
 % cmake -DGTSAM_INSTALL_MATLAB_TOOLBOX=ON -DMATLAB_ROOT=/usr/local/bin/matlab/R2020b -DMEX_COMMAND=/usr/local/bin/matlab/R2020b/bin/mex -DCMAKE_INSTALL_PREFIX:PATH=$HOME/gtsam-4.1 -DGTSAM_TOOLBOX_INSTALL_PATH:PATH=$HOME/gtsam-4.1/toolbox -DGTSAM_BUILD_PYTHON=ON -DGTSAM_PYTHON_VERSION=3 ..
