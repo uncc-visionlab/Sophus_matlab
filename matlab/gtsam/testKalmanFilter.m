@@ -27,6 +27,14 @@
 % Python bindings to be compiles (did not work 5/5/2021)
 % git clone https://github.com/borglab/gtsam.git
 % cd gtsam
+% You will need to have a github account with a valid ssh key or add one as
+% decribed here: https://docs.github.com/en/github/authenticating-to-github/adding-a-new-ssh-key-to-your-github-account
+% If this is the case the command below can succeed
+% ./update_wrap.sh 
+% Otherwise you can "rm -rf wrap" and git clone
+% git clone https://github.com/borglab/wrap.git
+% you will need the latest python3 version of pyparsing
+% pip3 install pyparsing
 % mkdir build
 % cd build
 % cmake -DGTSAM_INSTALL_MATLAB_TOOLBOX=ON -DGTSAM_BUILD_PYTHON=OFF -DMatlab_ROOT_DIR=/usr/local/bin/matlab/R2020b -DCMAKE_INSTALL_PREFIX:PATH=$HOME/gtsam-dev -DGTSAM_TOOLBOX_INSTALL_PATH:PATH=$HOME/gtsam-dev/toolbox -DGTSAM_PYTHON_VERSION=3 ..
@@ -47,13 +55,13 @@
 % 3. Allow Ubuntu to find your custom location for the GTSAM shared libraries
 %
 % Before running MATLAB when using GTSAM
-% export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/arwillis/gtsam/lib
+% export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/arwillis/gtsam-dev/lib
 % 
 % 4. Tell MATLAB where the GTSAM code and C++ interface library is located
 % In MATLAB, to use GTSAM start your code with
-% addpath("/home/arwillis/gtsam/toolbox")
+% addpath("/home/arwillis/gtsam-dev/toolbox")
 % import gtsam.*
-addpath("/home/arwillis/gtsam/toolbox")
+addpath("/home/arwillis/gtsam-dev/toolbox")
 
 
 %% Create the controls and measurement properties for our example
