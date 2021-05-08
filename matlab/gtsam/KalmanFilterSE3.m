@@ -1,8 +1,8 @@
-
-
-% Installing GTSAM (Ubuntu 18.04) 
 %
-% 1. Compile GTSAM 
+%
+% Installing GTSAM (Ubuntu 18.04)
+%
+% 1. Compile GTSAM
 %
 % GTSAM development from Github
 % Compile the development github source set (-DGTSAM_BUILD_PYTHON=ON) for
@@ -12,7 +12,7 @@
 % You will need to have a github account with a valid ssh key or add one as
 % decribed here: https://docs.github.com/en/github/authenticating-to-github/adding-a-new-ssh-key-to-your-github-account
 % If this is the case the command below can succeed
-% ./update_wrap.sh 
+% ./update_wrap.sh
 % Otherwise you can "rm -rf wrap" and git clone
 % git clone https://github.com/borglab/wrap.git
 % you will need the latest python3 version of pyparsing
@@ -38,95 +38,103 @@
 %
 % Before running MATLAB when using GTSAM
 % export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/arwillis/gtsam-dev/lib
-% 
+%
 % 4. Tell MATLAB where the GTSAM code and C++ interface library is located
 % In MATLAB, to use GTSAM start your code with
 % addpath("/home/arwillis/gtsam-dev/toolbox")
 % import gtsam.*
-addpath("/home/arwillis/gtsam-dev/toolbox")
+clc;
+addpath("/home/arwillis/gtsam-dev/toolbox");
+addpath("..");
 
 
 %% Create the controls and measurement properties for our example
 import gtsam.*
 
-%pose = Pose3.Expmap(initialState(1:6))
-%J_pose = Pose3.ExpmapDerivative(initialState(1:6))
-%velocity = Pose3.Expmap(initialState(7:12))
-%J_velocity = Pose3.ExpmapDerivative(initialState(7:12))
-
-Q = 0.01*eye(2,2);
-H = eye(12,12);
-z2 = [2.0, 0.0]';
-z3 = [3.0, 0.0]';
+modelQ = noiseModel.Diagonal.Sigmas(0.1*ones(12,1));
 modelR = noiseModel.Diagonal.Sigmas(0.1*ones(12,1));
-R = 0.01*eye(2,2);
-
-%% Create the set of expected output TestValues
-expected0 = [0.0, 0.0]';
-P00 = 0.01*eye(2,2);
-
-expected1 = [1.0, 0.0]';
-P01 = P00 + Q;
-I11 = inv(P01) + inv(R);
-
-expected2 = [2.0, 0.0]';
-P12 = inv(I11) + Q;
-I22 = inv(P12) + inv(R);
-
-expected3 = [3.0, 0.0]';
-P23 = inv(I22) + Q;
-I33 = inv(P23) + inv(R);
 
 %% Create an KalmanFilter object
 KF = KalmanFilter(12);
 
+%testPose = Pose3([[-1/sqrt(2) 1/sqrt(2) 0; sqrt(2), sqrt(2) 0; 0 0 1], [0 0 0]'; 0 0 0 1]);
 %% Create the Kalman Filter initialization point
 % initial state value
-deg_per_sec = 45*pi/180;
-x_initial = [0, 0, 0, 0, 0, 0, ...
-    1, 0, 0, deg_per_sec, 0, 0]';
-
+rad_per_sec = 45*pi/180;
+x_initial = [0, 0, 0, 0, 1, 1, ...
+    0, 0, rad_per_sec, 0, 0, 0]';
 % we have confidence in our initial state
-P_initial = 0.01*eye(12,12); 
+P_initial = 0.01*eye(12,12);
 
 %% Create an KF object
 state = KF.init(x_initial, P_initial);
-%EQUALITY('expected0,state.mean', expected0,state.mean);
-%EQUALITY('expected0,state.mean', P00,state.covariance);
 
 %% Run iteration 1
 %import gtsam.*
+global deltaT;
 deltaT = 1.0;
-poseExp = state.mean();
-F = [Pose3.ExpmapDerivative(poseExp(1:6)), eye(6,6) * deltaT;
-    zeros(6,6),  eye(6,6)]
 B = zeros(12,12);
 u = ones(12,1);
-modelQ = noiseModel.Diagonal.Sigmas(0.1*ones(12,1));
+%num_diff = NumericalDiff(@f, 12, 12, 'Central');
+num_diff = NumericalDiff(@f, 12, 12, 'Five-Point');
 
-state = KF.predict(state, F, B, u, modelQ);
-%EQUALITY('expected1,state.mean', expected1,state.mean);
-%EQUALITY('P01,state.covariance', P01,state.covariance);
-%state = KF.update(state, H, z1, modelR);
-%EQUALITY('expected1,state.mean', expected1,state.mean);
-%EQUALITY('I11,state.information', I11,state.information);
+for step=1:3
+    x_k = state.mean()
+    transform = Pose3.Expmap(x_k(1:6)).matrix()
+    x_kplus1 = f(x_k);
+    %Pose3.AdjointMap_(x_k(7:12))
+    F = [Pose3.ExpmapDerivative(x_k(7:12)), eye(6,6);
+        zeros(6,6),  eye(6,6)]
+    df = num_diff.df(state.mean());
+    dfRotPose = Rot3.ClosestTo(df(1:3,1:3));
+    dfRotVel = Rot3.ClosestTo(df(1:3,7:9));
+    df(1:3,1:3) = dfRotPose.matrix();
+    df(1:3,7:9) = dfRotVel.matrix();
+    df
+    state = KF.predict(state, df, B, u, modelQ);
+    %state = KF.update(state, H, z2, modelR);
+end
 
-%% Run iteration 2
-%import gtsam.*
-poseExp = state.mean();
-F = [Pose3.ExpmapDerivative(poseExp(1:6)), eye(6,6) * deltaT;
-    zeros(6,6),  eye(6,6)]
-state = KF.predict(state,F, B, u, modelQ);
-%EQUALITY('expected2,state.mean', expected2,state.mean);
-%state = KF.update(state,H,z2,modelR);
-%EQUALITY('expected2,state.mean', expected2,state.mean);
 
-%% Run iteration 3
-%import gtsam.*
-poseExp = state.mean();
-F = [Pose3.ExpmapDerivative(poseExp(1:6)), eye(6,6) * deltaT;
-    zeros(6,6),  eye(6,6)]
-state = KF.predict(state,F, B, u, modelQ);
-%EQUALITY('expected3,state.mean', expected3,state.mean);
-%state = KF.update(state,H,z3,modelR);
-%EQUALITY('expected3,state.mean', expected3,state.mean);
+
+
+
+
+function newpose_SE3 = transformSE3(x_k)
+import gtsam.*
+global deltaT;
+newpose_SE3 = Pose3.Expmap(x_k(1:6)).compose(Pose3.Expmap(x_k(7:12)*deltaT));
+%newpose_SE3 = Pose3.Expmap(x_k(7:12)*deltaT).compose(Pose3.Expmap(x_k(1:6)));
+end
+
+function x_kplus1 = f(x_k)
+import gtsam.*
+%if (nargin < 3)
+%    dt = 1.0;
+%end
+%! Predict given current pose and velocity
+% Constant velocity model: update position based on last known velocity
+%pose_SE3 = Se3(x_k(1:6));
+% compute delta pose over time frame dt
+%deltapose_SE3 = Se3(x_k(7:12) * dt);
+
+% decouple rotation and translation components by removing the
+% motion of the frame origin due to the rotational component
+% that effects the translation. The results is that rotational forces do not impact positional
+% updates.
+% We can apply the SE(3) retraction from eq (21) of https://arxiv.org/pdf/1512.02363.pdf
+%newTrans = pose_SE3.getTranslation() - deltapose_SE3.getSo3() * pose_SE3.getTranslation() + deltapose_SE3.getTranslation();
+%deltapose_SE3.setTranslation(newTrans);
+% left composition of transformations
+%x_predicted(1) = delta_pose * self.state_SE3;
+%newpose_SE3 = deltapose_SE3 * self.state_SE3;
+%newpose_SE3 = deltapose_SE3 * pose_SE3;
+%newpose_SE3 = pose_SE3 * deltapose_SE3;
+newpose_SE3 = transformSE3(x_k);
+x_kplus1 = zeros(12,1);
+x_kplus1(1:6,1) = Pose3.Logmap(newpose_SE3);
+% constant velocity assumption
+%x_predicted(2) = self.state_SE3_dot;
+x_kplus1(7:12,1) = x_k(7:12);
+end
+
