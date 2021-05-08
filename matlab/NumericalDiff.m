@@ -101,7 +101,7 @@ classdef NumericalDiff < Constants
                         val4 = self.f(x);
                         %nfev = nfev + 1;
                         x(dim) = xin(dim);
-                        J(:,dim) = (-val1+8*val2-8*val3+val4)/(12*h);
+                        J(:,dim) = (val1 - 8*val2 + 8*val3 - val4)/(12*h);
                     otherwise
                         printf(1,'NumericalDiff: Error no such method!\n');
                 end
