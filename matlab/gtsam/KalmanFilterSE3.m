@@ -77,21 +77,23 @@ B = zeros(12,12);
 u = ones(12,1);
 %num_diff = NumericalDiff(@f, 12, 12, 'Central');
 num_diff = NumericalDiff(@f, 12, 12, 'Five-Point');
+x_k = x_initial;
 
 for step=1:3
-    x_k = state.mean()
+    %x_k = state.mean()
     transform = Pose3.Expmap(x_k(1:6)).matrix()
     x_kplus1 = f(x_k);
     %Pose3.AdjointMap_(x_k(7:12))
-    F = [Pose3.ExpmapDerivative(x_k(7:12)), eye(6,6);
+    F = [Pose3.ExpmapDerivative(x_k(1:6)), Pose3.ExpmapDerivative(x_k(7:12));
         zeros(6,6),  eye(6,6)]
-    df = num_diff.df(state.mean());
+    df = num_diff.df(x_k);
     dfRotPose = Rot3.ClosestTo(df(1:3,1:3));
     dfRotVel = Rot3.ClosestTo(df(1:3,7:9));
     df(1:3,1:3) = dfRotPose.matrix();
     df(1:3,7:9) = dfRotVel.matrix();
     df
-    state = KF.predict(state, df, B, u, modelQ);
+    %state = KF.predict(state, df, B, u, modelQ);
+    state = f(x_k);
     %state = KF.update(state, H, z2, modelR);
 end
 
