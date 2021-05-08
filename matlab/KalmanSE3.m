@@ -21,14 +21,15 @@ classdef KalmanSE3 < handle
     methods (Static)
         function trajectory = kalman_lie()
             clc;
-            initialState = [0, 0, 0, 0, 0, 0, ...
-                0.05, 0.1, 0, 0, 0.1, 0]';
+            rad_per_sec = 45*pi/180;
+            initialState = [1, 1, 0, 0, 0, 0, ...
+                1, 1, 0, 0, 0, rad_per_sec]';
             ekf_se3 = KalmanSE3(initialState);
             x = ekf_se3.getState();
             %x_mat = x(1).matrix()';
             %xdot_mat = x(2).matrix()';
             % Generate a trajectory
-            num_steps = 7;
+            num_steps = 3;
             %traj(1:num_steps) = Se3();
             v_init = initialState(7:12);
             traj(1) = Se3(initialState(1:6));
@@ -70,6 +71,7 @@ classdef KalmanSE3 < handle
 
                 % Predict state for current time-step using the filters
                 x_k = ekf_se3.getState();
+                Se3.exp(x_k).matrix()
                 x_kplus1 = ekf_se3.predict(x_k);
                 ekf_se3.getJacobian(x_k);
                 %x_kplus1_p =  (x_k(2) * dt) * x_k(1);
