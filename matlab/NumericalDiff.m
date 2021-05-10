@@ -5,6 +5,8 @@ classdef NumericalDiff < Constants
         CENTRAL_DIFFERENCE = 1
         FORWARD_DIFFERENCE = 2
         FIVEPOINT_DIFFERENCE = 3
+        SEVENPOINT_DIFFERENCE = 4
+        NINEPOINT_DIFFERENCE = 5
     end
     properties
         f
@@ -38,6 +40,10 @@ classdef NumericalDiff < Constants
                 self.method = NumericalDiff.CENTRAL_DIFFERENCE;
             elseif (nargin == 4 && strcmpi(method,'five-point') == true)
                 self.method = NumericalDiff.FIVEPOINT_DIFFERENCE;
+            elseif (nargin == 4 && strcmpi(method,'seven-point') == true)
+                self.method = NumericalDiff.SEVENPOINT_DIFFERENCE;
+            elseif (nargin == 4 && strcmpi(method,'nine-point') == true)
+                self.method = NumericalDiff.NINEPOINT_DIFFERENCE;
             else
                 self.method = NumericalDiff.FORWARD_DIFFERENCE;
             end
@@ -50,6 +56,10 @@ classdef NumericalDiff < Constants
             val2 = zeros(self.inputs,1);
             val3 = zeros(self.inputs,1);
             val4 = zeros(self.inputs,1);
+            val5 = zeros(self.inputs,1);
+            val6 = zeros(self.inputs,1);
+            val7 = zeros(self.inputs,1);
+            val8 = zeros(self.inputs,1);            
             J = zeros(self.values, self.inputs);
             x = xin;
             % initialization
@@ -61,6 +71,10 @@ classdef NumericalDiff < Constants
                 case NumericalDiff.CENTRAL_DIFFERENCE
                     % do nothing
                 case NumericalDiff.FIVEPOINT_DIFFERENCE
+                    % do nothing
+                case NumericalDiff.SEVENPOINT_DIFFERENCE
+                    % do nothing
+                case NumericalDiff.NINEPOINT_DIFFERENCE
                     % do nothing
                 otherwise
                     printf(1,'NumericalDiff: Error no such method!\n');
@@ -102,6 +116,54 @@ classdef NumericalDiff < Constants
                         %nfev = nfev + 1;
                         x(dim) = xin(dim);
                         J(:,dim) = (val1 - 8*val2 + 8*val3 - val4)/(12*h);
+                    case NumericalDiff.SEVENPOINT_DIFFERENCE
+                        x(dim) = x(dim) - 3*h;
+                        val1 = self.f(x);
+                        %nfev = nfev + 1;
+                        x(dim) = x(dim) + h;
+                        val2 = self.f(x);
+                        %nfev = nfev + 1;
+                        x(dim) = x(dim) + h;
+                        val3 = self.f(x);
+                        %nfev = nfev + 1;
+                        x(dim) = x(dim) + 2*h;
+                        val4 = self.f(x);
+                        %nfev = nfev + 1;
+                        x(dim) = x(dim) + h;
+                        val5 = self.f(x);
+                        %nfev = nfev + 1;
+                        x(dim) = x(dim) + h;
+                        val6 = self.f(x);
+                        %nfev = nfev + 1;
+                        x(dim) = xin(dim);
+                        J(:,dim) = (-val1 + 9*val2 - 45*val3 + 45*val4 - 9*val5 + val6)/(60*h);
+                    case NumericalDiff.NINEPOINT_DIFFERENCE
+                        x(dim) = x(dim) - 4*h;
+                        val1 = self.f(x);
+                        %nfev = nfev + 1;
+                        x(dim) = x(dim) + h;
+                        val2 = self.f(x);
+                        %nfev = nfev + 1;
+                        x(dim) = x(dim) + h;
+                        val3 = self.f(x);
+                        %nfev = nfev + 1;
+                        x(dim) = x(dim) + h;
+                        val4 = self.f(x);
+                        %nfev = nfev + 1;
+                        x(dim) = x(dim) + 2*h;
+                        val5 = self.f(x);
+                        %nfev = nfev + 1;
+                        x(dim) = x(dim) + h;
+                        val6 = self.f(x);
+                        %nfev = nfev + 1;
+                        x(dim) = x(dim) + h;
+                        val7 = self.f(x);
+                        %nfev = nfev + 1;
+                        x(dim) = x(dim) + h;
+                        val8 = self.f(x);
+                        %nfev = nfev + 1;
+                        x(dim) = xin(dim);
+                        J(:,dim) = (val1-val8)/(280*h) - 4*(val2-val7)/(105*h) + ((val3-val6) - 4*(val4-val5))/(5*h);
                     otherwise
                         printf(1,'NumericalDiff: Error no such method!\n');
                 end
