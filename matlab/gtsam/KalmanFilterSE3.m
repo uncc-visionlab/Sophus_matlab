@@ -18,9 +18,9 @@ KF = KalmanFilter(12);
 %testPose = Pose3([[-1/sqrt(2) 1/sqrt(2) 0; sqrt(2), sqrt(2) 0; 0 0 1], [0 0 0]'; 0 0 0 1]);
 %% Create the Kalman Filter initialization point
 % initial state value
-rad_per_sec = 45*pi/180;
+rad_per_sec = 5*pi/180;
 x_initial = [0, 0, 0, 0, 1, 1, ...
-    0, 0, rad_per_sec, 1, 0, 0]';
+    0, 0, rad_per_sec, .1, 0, 0]';
 % we have confidence in our initial state
 P_initial = 0.01*eye(12,12);
 
@@ -39,8 +39,23 @@ num_diff = NumericalDiff(@f, 12, 12, 'Nine-Point');
 x_k = x_initial;
 
 Pose3.Expmap(x_k(1:6))
-Pose3.Expmap(x_k(7:12)*deltaT)
+state_SO3 = Rot3.Rodrigues(x_k(1:3))
+state_Pose3_mat = [state_SO3.matrix(), x_k(4:6); 0 0 0 1]
+state_poseSE3 = Pose3(state_Pose3_mat)
+pose_grpSE3 = Pose3.Logmap(state_poseSE3)
+pose_algSE3 = Pose3.Expmap(pose_grpSE3)
 
+state_deltaSO3 = Rot3.Rodrigues(x_k(7:9)*deltaT)
+state_deltaPose3_mat = [state_deltaSO3.matrix(), x_k(10:12)*deltaT; 0 0 0 1]
+state_deltaSE3 = Pose3(state_deltaPose3_mat);
+delta_grpSE3 = Pose3.Logmap(state_deltaSE3)
+delta_algSE3 = Pose3.Expmap(delta_grpSE3)
+
+Pose3.Expmap(pose_grpSE3 + delta_grpSE3).matrix()
+state_Pose3_mat*state_deltaPose3_mat
+%Pose3.Expmap(x_k(7:12)*deltaT)
+%Pose3.Expmap(Pose3.Logmap(Pose3(x_k(1:6) + x_k(7:12)*deltaT)))
+return
 for step=1:3
     %x_k = state.mean()
     transform = Pose3.Expmap(x_k(1:6)).matrix()
