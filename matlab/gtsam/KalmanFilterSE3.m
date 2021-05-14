@@ -42,17 +42,25 @@ Pose3.Expmap(x_k(1:6))
 state_SO3 = Rot3.Rodrigues(x_k(1:3))
 state_Pose3_mat = [state_SO3.matrix(), x_k(4:6); 0 0 0 1]
 state_poseSE3 = Pose3(state_Pose3_mat)
-pose_grpSE3 = Pose3.Logmap(state_poseSE3)
-pose_algSE3 = Pose3.Expmap(pose_grpSE3)
+pose_algSE3 = Pose3.Logmap(state_poseSE3)
+pose_grpSE3 = Pose3.Expmap(pose_algSE3)
 
 state_deltaSO3 = Rot3.Rodrigues(x_k(7:9)*deltaT)
 state_deltaPose3_mat = [state_deltaSO3.matrix(), x_k(10:12)*deltaT; 0 0 0 1]
 state_deltaSE3 = Pose3(state_deltaPose3_mat);
-delta_grpSE3 = Pose3.Logmap(state_deltaSE3)
-delta_algSE3 = Pose3.Expmap(delta_grpSE3)
+delta_algSE3 = Pose3.Logmap(state_deltaSE3)
+delta_grpSE3 = Pose3.Expmap(delta_algSE3)
 
-Pose3.Expmap(pose_grpSE3 + delta_grpSE3).matrix()
+% retraction of SE(3) - Composes the SE(3) transformations pose_algSE3 and delta_grpSE3
+pose_grpSE3.retract(delta_algSE3).matrix()
+Pose3.Logmap(pose_grpSE3.retract(delta_algSE3))
+
+% composition in the se(3) algebra / tangent space and project onto
+% the SE(3) group manifold
+Pose3.Expmap(pose_algSE3 + delta_algSE3).matrix()
+% composition on the SE(3) group manifold
 state_Pose3_mat*state_deltaPose3_mat
+Pose3.Expmap(pose_algSE3).matrix()*Pose3.Expmap(Pose3.ExpmapDerivative(pose_grpSE3.Adjoint(delta_algSE3)) * delta_algSE3).matrix()
 %Pose3.Expmap(x_k(7:12)*deltaT)
 %Pose3.Expmap(Pose3.Logmap(Pose3(x_k(1:6) + x_k(7:12)*deltaT)))
 return
