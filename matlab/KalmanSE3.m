@@ -129,9 +129,12 @@ classdef KalmanSE3 < handle
         
         function trajectory = demo()
             clc;
+            %rad_per_sec = 45*pi/180;
+            %initialState = [3, 3, 3, 0, 0, 0, ...
+            %    3, 0, 0, rad_per_sec, 0, 0]';
             rad_per_sec = 45*pi/180;
             initialState = [3, 3, 3, 0, 0, 0, ...
-                3, 0, 0, rad_per_sec, 0, 0]';
+               1.5, 0, 0, rad_per_sec, rad_per_sec, rad_per_sec]';
             %pose = Se3([1, 1, 1, 0, 0, 0]);
             %delta_pose = Se3([0, 0, 0, deg_per_sec, 0, 0]);
             %rotate_around_pose = Se3([pose.getTranslation() - delta_pose.getSo3() * pose.getTranslation(); deg_per_sec; 0; 0]);
@@ -140,20 +143,20 @@ classdef KalmanSE3 < handle
             ekf_se3 = KalmanSE3(initialState);
             %gm = importGeometry('BracketTwoHoles.stl');
             %pdegplot(gm);
-            box = collisionBox(3,1,2);
+            box = collisionBox(0.1,0.5,1);
             x_k0 = ekf_se3.getState();
             box.Pose = Se3(x_k0(1:6)).matrix();
             hold off;
             show(box);
-            xlim([-10 10])
-            ylim([-10 10])
-            zlim([-10 10])
+            xlim([0 12])
+            ylim([0 12])
+            zlim([0 12])
             title('Box');
             hold on;
             drawnow;
             start_time = 0;
-            end_time = 1;
-            frames_per_second = 3;
+            end_time = 15;
+            frames_per_second = 30;
             dt = 1/frames_per_second;
             ekf_se3.setTimeStep(dt);
             trajectory = x_k0(1:6);

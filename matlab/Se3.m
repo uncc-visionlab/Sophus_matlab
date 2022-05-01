@@ -3,7 +3,7 @@ classdef Se3 < Constants
     %
     % SE(3) is the group of rotations  and translation in 3d. It is the
     % semi-direct product of SO(3) and the 3d Euclidean vector space.  The class
-    % is represented using a composition of SO3  for rotation and a one 3-vector
+    % is represented using a composition of SO3  for rotation and a 3-vector
     % for translation.
     %
     % SE(3) is neither compact, nor a commutative group.
@@ -441,7 +441,7 @@ classdef Se3 < Constants
                 self.translation = varargin{1}.getTranslation();
                 self.so3 = varargin{1}.getSo3();
             elseif (nargin == 1 && numel(varargin{1}) == 6)
-                % input is an tangent vector from a Lie algebra
+                % input is a tangent vector from a Lie algebra
                 % we must immediately convert it to a Lie group using
                 % the exponential map
                 %self.translation = [varargin{1}(1); varargin{1}(2); varargin{1}(3)];
@@ -457,7 +457,7 @@ classdef Se3 < Constants
                 self.so3 = So3(varargin{1}(1:3,1:3));
                 self.translation = [varargin{2}(1); varargin{2}(2); varargin{2}(3)];
             else
-                fprintf(1,"Error could not construct Se2 object.\n");
+                fprintf(1,"Error could not construct Se3 object.\n");
             end
         end
 

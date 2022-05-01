@@ -7,7 +7,7 @@ classdef Constants < handle
         % epsilon in Numerical differentiation (line 72)
         % https://github.com/libigl/eigen/blob/master/unsupported/Eigen/src/NumericalDiff/NumericalDiff.h
         % that works out to about 1.5e-8
-        epsilon = 1e-10 
+        epsilon = (eps('double')^(1/3)) 
     end
     methods (Static)
         function retval = pi()

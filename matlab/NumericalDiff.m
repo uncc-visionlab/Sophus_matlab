@@ -81,7 +81,7 @@ classdef NumericalDiff < Constants
             end
             % Function Body
             for dim=1:self.inputs
-                h = epsilon*abs(sqrt(x(dim)));
+                h = epsilon*sqrt(abs(x(dim)));
                 if (h < epsilon)
                     h = epsilon;
                 end
